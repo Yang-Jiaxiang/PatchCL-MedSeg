@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import math
 
 def get_embeddings(model, patch_list, studentBool,batch_size=4):
+    dev=torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     embedding_list=[]
     for cls in range(len(patch_list)):
         if patch_list[cls] is not None:

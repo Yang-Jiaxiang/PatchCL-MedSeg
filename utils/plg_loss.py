@@ -1,6 +1,6 @@
 import torch 
 import numpy as np
-from hard_neg_mining import hard_neg
+from utils.hard_neg_mining import hard_neg
 
 def PCGJCL(patch_list, embd_queues, emb_dim, tau, lamb, psi=4096):
   

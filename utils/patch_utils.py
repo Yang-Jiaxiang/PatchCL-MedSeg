@@ -3,7 +3,7 @@ import cv2
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
 import numpy as np
-from nms_utils import non_max_suppression_slow, non_max_suppression_fast
+from utils.nms_utils import non_max_suppression_slow, non_max_suppression_fast
 
 def patcher(imgs,mask,x,y,w,h,patch_size,image_size):
 
