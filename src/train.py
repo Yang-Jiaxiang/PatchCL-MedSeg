@@ -34,7 +34,7 @@ if __name__=="__main__":
 
 	#Turning off gradients for teacher model
 	for param in teacher_model.parameters():
-    	param.requires_grad=False
+		param.requires_grad=False
         #Esuring mothe the models have same weight
 	teacher_model.load_state_dict(model.state_dict())
 	model.contrast=False
@@ -65,183 +65,183 @@ if __name__=="__main__":
 	#CONTRASTIVE PRETRAINING (warm up)
 	#torch.autograd.set_detect_anomaly(True)
 	for c_epochs in range(100): #100 epochs supervised pre training
-	    step=0
-	    min_loss = math.inf
-	    epoch_loss=0
-	    #print('Epoch ',c_epochs)
+		step=0
+		min_loss = math.inf
+		epoch_loss=0
+		#print('Epoch ',c_epochs)
 
-	    for imgs, masks in labelled_dataloader:
+		for imgs, masks in labelled_dataloader:
 
-	        t1=time.time()
-	        with torch.no_grad():
+			t1=time.time()
+			with torch.no_grad():
 
-	            #Send psudo masks & imgs to cpu
-	            p_masks=masks
-	            imgs = imgs
+				#Send psudo masks & imgs to cpu
+				p_masks=masks
+				imgs = imgs
 
-	            #get classwise patch list
-	            patch_list = _get_patches(imgs,p_masks)
-	            
-	            #stochastic approximation filtering and threshold update
-	            #qualified_patch_list = stochastic_approx.update(patch_list)
-	            qualified_patch_list = patch_list
+				#get classwise patch list
+				patch_list = _get_patches(imgs,p_masks)
+				
+				#stochastic approximation filtering and threshold update
+				#qualified_patch_list = stochastic_approx.update(patch_list)
+				qualified_patch_list = patch_list
 
-	            #make augmentations for teacher model
-	            augmented_patch_list = batch_augment(qualified_patch_list,contrastive_batch_size)
+				#make augmentations for teacher model
+				augmented_patch_list = batch_augment(qualified_patch_list,contrastive_batch_size)
 
-	            
-	            #convert to tensor
-	            aug_tensor_patch_list=[]
-	            qualified_tensor_patch_list=[]
-	            for i in range(len(augmented_patch_list)):
-	                if augmented_patch_list[i] is not None:
-	                    aug_tensor_patch_list.append(torch.tensor(augmented_patch_list[i]))
-	                    qualified_tensor_patch_list.append(torch.tensor(qualified_patch_list[i]))
-	                else:
-	                    aug_tensor_patch_list.append(None)
-	                    qualified_tensor_patch_list.append(None)
-	        
+				
+				#convert to tensor
+				aug_tensor_patch_list=[]
+				qualified_tensor_patch_list=[]
+				for i in range(len(augmented_patch_list)):
+					if augmented_patch_list[i] is not None:
+						aug_tensor_patch_list.append(torch.tensor(augmented_patch_list[i]))
+						qualified_tensor_patch_list.append(torch.tensor(qualified_patch_list[i]))
+					else:
+						aug_tensor_patch_list.append(None)
+						qualified_tensor_patch_list.append(None)
+			
 
-	        #get embeddings of qualified patches through student model
-	        model=model.train()
-	        model.module.contrast=True
-	        student_emb_list = get_embeddings(model,qualified_tensor_patch_list,True)
+			#get embeddings of qualified patches through student model
+			model=model.train()
+			model.module.contrast=True
+			student_emb_list = get_embeddings(model,qualified_tensor_patch_list,True)
 
-	        #get embeddings of augmented patches through teacher model
-	        teacher_model.train()
-	        teacher_model.contrast = True
-	        teacher_embedding_list = get_embeddings(teacher_model,aug_tensor_patch_list,False)
+			#get embeddings of augmented patches through teacher model
+			teacher_model.train()
+			teacher_model.contrast = True
+			teacher_embedding_list = get_embeddings(teacher_model,aug_tensor_patch_list,False)
 
-	        #enqueue these
-	        embd_queues.enqueue(teacher_embedding_list)
+			#enqueue these
+			embd_queues.enqueue(teacher_embedding_list)
 
-	        #calculate PCGJCL loss
-	        PCGJCL_loss = PCGJCL(student_emb_list, embd_queues, 128, 0.2 , 4, psi=4096)
+			#calculate PCGJCL loss
+			PCGJCL_loss = PCGJCL(student_emb_list, embd_queues, 128, 0.2 , 4, psi=4096)
 
-	        #calculate supervied loss
-	        imgs, masks =imgs.to(dev), masks.to(dev)
-	        out = model(imgs)
-	        supervised_loss = cross_entropy_loss(out,masks)
+			#calculate supervied loss
+			imgs, masks =imgs.to(dev), masks.to(dev)
+			out = model(imgs)
+			supervised_loss = cross_entropy_loss(out,masks)
 
-	        #total loss
-	        loss = supervised_loss + 0.5*PCGJCL_loss
+			#total loss
+			loss = supervised_loss + 0.5*PCGJCL_loss
 
-	        epoch_loss+=loss
-	        
-	        #backpropagate
-	        loss.backward()
-	        optimizer_contrast.step()
+			epoch_loss+=loss
+			
+			#backpropagate
+			loss.backward()
+			optimizer_contrast.step()
 
 
-	        for param_stud, param_teach in zip(model.parameters(),teacher_model.parameters()):
-	            param_teach.data.copy_(0.001*param_stud + 0.999*param_teach)
+			for param_stud, param_teach in zip(model.parameters(),teacher_model.parameters()):
+				param_teach.data.copy_(0.001*param_stud + 0.999*param_teach)
 
-	        #Extras
-	        t2=time.time()
-	        print('step ', step, 'loss: ',loss, ' & time: ',t2-t1)
-	        step+=1
-	    if epoch_loss < min_loss:
-	        torch.save(model,'./best_contrast.pth')
+			#Extras
+			t2=time.time()
+			print('step ', step, 'loss: ',loss, ' & time: ',t2-t1)
+			step+=1
+		if epoch_loss < min_loss:
+			torch.save(model,'./best_contrast.pth')
 
 
 	for c_epochs in range(200): #200 epochs supervised SSL
-	    step=0
-	    min_loss = math.inf
-	    epoch_loss=0
-	    #print('Epoch ',c_epochs)
+		step=0
+		min_loss = math.inf
+		epoch_loss=0
+		#print('Epoch ',c_epochs)
 
-	    labeled_iterator = iter(labelled_dataloader)
-	    for imgs in unlabeled_dataloader:
+		labeled_iterator = iter(labelled_dataloader)
+		for imgs in unlabeled_dataloader:
 
-	        t1=time.time()
-	        with torch.no_grad():
+			t1=time.time()
+			with torch.no_grad():
 
-	            #send imgs to dev
-	            imgs = imgs.to(dev)
-	            
-	            #set model in Eval mode
-	            model = model.eval()
+				#send imgs to dev
+				imgs = imgs.to(dev)
+				
+				#set model in Eval mode
+				model = model.eval()
 
-	            #Get pseudo masks
-	            model.module.contrast=False
-	            p_masks = model(imgs)
+				#Get pseudo masks
+				model.module.contrast=False
+				p_masks = model(imgs)
 
-	            #Send psudo masks & imgs to cpu
-	            p_masks=masks
-	            p_masks = p_masks.to('cpu').detach()
-	            imgs = imgs.to('cpu').detach()
+				#Send psudo masks & imgs to cpu
+				p_masks=masks
+				p_masks = p_masks.to('cpu').detach()
+				imgs = imgs.to('cpu').detach()
 
-	            #Since we use labeled data for PCGJCL as well
-	            imgs2, masks2 = labeled_iterator.next()
+				#Since we use labeled data for PCGJCL as well
+				imgs2, masks2 = labeled_iterator.next()
 
-	            #concatenating unlabeled and labeled sets
-	            p_masks = torch.cat([p_masks,masks2],dim=0)
-	            imgs = torch.cat([imgs,imgs2],dim=0)
+				#concatenating unlabeled and labeled sets
+				p_masks = torch.cat([p_masks,masks2],dim=0)
+				imgs = torch.cat([imgs,imgs2],dim=0)
 
-	            #get classwise patch list
-	            patch_list = _get_patches(imgs,p_masks)
-	            
-	            #stochastic approximation filtering and threshold update
-	            qualified_patch_list = stochastic_approx.update(patch_list)
-
-
-	            #make augmentations for teacher model
-	            augmented_patch_list = batch_augment(qualified_patch_list,contrastive_batch_size)
-
-	            #convert to tensor
-	            aug_tensor_patch_list=[]
-	            qualified_tensor_patch_list=[]
-	            for i in range(len(augmented_patch_list)):
-	                if augmented_patch_list[i] is not None:
-	                    aug_tensor_patch_list.append(torch.tensor(augmented_patch_list[i]))
-	                    qualified_tensor_patch_list.append(torch.tensor(qualified_patch_list[i]))
-	                else:
-	                    aug_tensor_patch_list.append(None)
-	                    qualified_tensor_patch_list.append(None)
-	        
-
-	        #get embeddings of qualified patches through student model
-	        model=model.train()
-	        model.module.contrast=True
-	        student_emb_list = get_embeddings(model,qualified_tensor_patch_list,True)
-
-	        #get embeddings of augmented patches through teacher model
-	        teacher_model.train()
-	        teacher_model.contrast = True
-	        teacher_embedding_list = get_embeddings(teacher_model,aug_tensor_patch_list,False)
-
-	        #enqueue these
-	        embd_queues.enqueue(teacher_embedding_list)
-
-	        #calculate PCGJCL loss
-	        PCGJCL_loss = PCGJCL(student_emb_list, embd_queues, 128, 1 , 10, alpha=1)
+				#get classwise patch list
+				patch_list = _get_patches(imgs,p_masks)
+				
+				#stochastic approximation filtering and threshold update
+				qualified_patch_list = stochastic_approx.update(patch_list)
 
 
-	        #calculate supervied loss
-	        imgs2, masks2 =imgs2.to(dev), masks2.to(dev)
-	        out = model(imgs)
-	        supervised_loss = cross_entropy_loss(out,masks2)
+				#make augmentations for teacher model
+				augmented_patch_list = batch_augment(qualified_patch_list,contrastive_batch_size)
+
+				#convert to tensor
+				aug_tensor_patch_list=[]
+				qualified_tensor_patch_list=[]
+				for i in range(len(augmented_patch_list)):
+					if augmented_patch_list[i] is not None:
+						aug_tensor_patch_list.append(torch.tensor(augmented_patch_list[i]))
+						qualified_tensor_patch_list.append(torch.tensor(qualified_patch_list[i]))
+					else:
+						aug_tensor_patch_list.append(None)
+						qualified_tensor_patch_list.append(None)
+			
+
+			#get embeddings of qualified patches through student model
+			model=model.train()
+			model.module.contrast=True
+			student_emb_list = get_embeddings(model,qualified_tensor_patch_list,True)
+
+			#get embeddings of augmented patches through teacher model
+			teacher_model.train()
+			teacher_model.contrast = True
+			teacher_embedding_list = get_embeddings(teacher_model,aug_tensor_patch_list,False)
+
+			#enqueue these
+			embd_queues.enqueue(teacher_embedding_list)
+
+			#calculate PCGJCL loss
+			PCGJCL_loss = PCGJCL(student_emb_list, embd_queues, 128, 1 , 10, alpha=1)
 
 
-	        #Consistency Loss
-	        consistency_loss=consistency_cost(model,teacher_model,imgs,p_masks)
+			#calculate supervied loss
+			imgs2, masks2 =imgs2.to(dev), masks2.to(dev)
+			out = model(imgs)
+			supervised_loss = cross_entropy_loss(out,masks2)
 
 
-	        #total loss
-	        loss = supervised_loss + 0.5*PCGJCL_loss + 4*consistency_loss
-	        
-	        #backpropagate
-	        loss.backward()
-	        optimizer_ssl.step()
-	        scheduler.step()
+			#Consistency Loss
+			consistency_loss=consistency_cost(model,teacher_model,imgs,p_masks)
 
 
-	        for param_stud, param_teach in zip(model.parameters(),teacher_model.parameters()):
-	            param_teach.data.copy_(0.001*param_stud + 0.999*param_teach)
+			#total loss
+			loss = supervised_loss + 0.5*PCGJCL_loss + 4*consistency_loss
+			
+			#backpropagate
+			loss.backward()
+			optimizer_ssl.step()
+			scheduler.step()
 
-	        #Extras
-	        t2=time.time()
-	        print('step ', step, 'loss: ',loss, ' & time: ',t2-t1)
-	        step+=1
-	    if epoch_loss < min_loss:
-	        torch.save(model,'./best_contrast.pth')
+
+			for param_stud, param_teach in zip(model.parameters(),teacher_model.parameters()):
+				param_teach.data.copy_(0.001*param_stud + 0.999*param_teach)
+
+			#Extras
+			t2=time.time()
+			print('step ', step, 'loss: ',loss, ' & time: ',t2-t1)
+			step+=1
+		if epoch_loss < min_loss:
+			torch.save(model,'./best_contrast.pth')

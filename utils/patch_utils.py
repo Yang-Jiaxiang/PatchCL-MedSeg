@@ -32,10 +32,10 @@ def patcher(imgs,mask,x,y,w,h,patch_size,image_size):
         
         #note that flag1 & flag3 cant be 1 simultaneously. Similarly with flag2 and flag4
         sum=flag1+flag2+flag3+flag4
-        if sum is 0:
+        if sum == 0:
             x_corner, y_corner = x+w//2-patch_size//2, y+h//2-patch_size//2
             return [imgs[:,x_corner:x_corner+patch_size,y_corner:y_corner+patch_size]*mask[x_corner:x_corner+patch_size,y_corner:y_corner+patch_size]],[np.array([x_corner, y_corner,x_corner+patch_size, y_corner+patch_size])]
-        elif sum is 1:
+        elif sum == 1:
             x_corner, y_corner = (x+w//2-patch_size//2)*(1-flag1)*(1-flag3)+flag3*(image_size-patch_size), (y+h//2-patch_size//2)*(1-flag2)*(1-flag4)+flag4*(image_size-patch_size)
             return [imgs[:,x_corner:x_corner+patch_size,y_corner:y_corner+patch_size]*mask[x_corner:x_corner+patch_size,y_corner:y_corner+patch_size]],[np.array([x_corner, y_corner,x_corner+patch_size, y_corner+patch_size])]
         else:
@@ -52,10 +52,10 @@ def patcher(imgs,mask,x,y,w,h,patch_size,image_size):
 
         sum=flag1+flag2+flag3+flag4 #sum cannot be 2 here
         if h<patch_size or w<patch_size:
-            if sum is 0:
+            if sum == 0:
                 x = x+w//2-patch_size//2 if w<patch_size else x
                 y = y+h//2-patch_size//2 if h<patch_size else y
-            elif sum is 1: #change x OR y for suitable cropping
+            elif sum == 1: #change x OR y for suitable cropping
                 x = 0 + (image_size-patch_size)*flag3*(1-flag1)+x*(1-flag1)*(1-flag3)
                 y = 0 + (image_size-patch_size)*flag4*(1-flag2)+y*(1-flag2)*(1-flag4)
         
@@ -85,7 +85,7 @@ def patcher(imgs,mask,x,y,w,h,patch_size,image_size):
 
 
 
-def _get_patches(imgs,masks,classes=21,background=True,img_size=512,patch_size=256):
+def _get_patches(imgs,masks,classes=2,background=True,img_size=400,patch_size=256):
 
     """
     INPUTS:
@@ -107,7 +107,7 @@ def _get_patches(imgs,masks,classes=21,background=True,img_size=512,patch_size=2
     patches=[]
     start_index=0
     #Assuming background index to be 0
-    if background is True:
+    if background == True:
         start_index+=1
         bkgrnds=masks[:,0,:,:] #getting the background masks
         bkgrnds_list=[]
@@ -152,4 +152,3 @@ def _get_patches(imgs,masks,classes=21,background=True,img_size=512,patch_size=2
             patches.append(None)
     
     return patches
-                    
