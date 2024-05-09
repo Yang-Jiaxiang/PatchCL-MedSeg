@@ -106,7 +106,7 @@ if __name__=="__main__":
         step=0
         min_loss = math.inf
         epoch_loss=0
-        #print('Epoch ',c_epochs)
+        print('Epoch ',c_epochs)
 
         for imgs, masks in labeled_dataloader:
 
