@@ -3,10 +3,9 @@ import torch.nn as nn
 import segmentation_models_pytorch as smp
 
 class Network(nn.Module):
-
   def __init__(self,embedding_size=128):
     super(Network,self).__init__()
-    self.seg_model = smp.DeepLabV3Plus('resnet101',classes=21,in_channels=3,encoder_weights='imagenet',activation=None)
+    self.seg_model = smp.DeepLabV3Plus('resnet101',classes=2,in_channels=3,encoder_weights='imagenet',activation=None)
     self.encoder= self.seg_model.encoder
     self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
     self.fc = nn.Sequential(
