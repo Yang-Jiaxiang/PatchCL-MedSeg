@@ -165,13 +165,17 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
 
         model.module.contrast=False
         out = model(imgs)
-
-        masks = masks[:, 0, :, :]
-        supervised_loss = cross_entropy_loss(out,masks)
+        
+        masks_3 = masks
+        if masks_3.dim() == 4:
+            masks_3 = masks_3.argmax(dim=1)
+        masks_3 = masks_3.long()  # Ensuring the correct type for cross_entropy_loss
+        supervised_loss = cross_entropy_loss(out,masks_3)
         print('supervised_loss: ', supervised_loss)
 
+        Alpha_consistency=0.5
         #total loss
-        loss = supervised_loss + 0.5*PCGJCL_loss
+        loss = (supervised_loss * (1-Alpha_consistency)) + (Alpha_consistency * PCGJCL_loss)
         
         epoch_loss+=loss.item()
         
