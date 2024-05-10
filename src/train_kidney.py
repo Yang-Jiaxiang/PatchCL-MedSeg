@@ -178,6 +178,9 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
         loss = (supervised_loss * (1-Alpha_consistency)) + (Alpha_consistency * PCGJCL_loss)
         
         epoch_loss+=loss.item()
+
+        loss.backward()
+        optimizer_contrast.step()
         
         t2=time.time()
         print('step ', step, 'loss: ',loss.item(), ' & time: ',t2-t1)
