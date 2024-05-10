@@ -7,7 +7,7 @@ class CE_loss(utils.losses.CrossEntropyLoss):
         super(CE_loss,self).__init__()
         #self.weights=torch.ones(21)
         #self.weights[0]=0.05
-        self.ce_loss=utils.losses.CrossEntropyLoss()
+        self.ce_loss=utils.losses.CrossEntropyLoss(reduction='mean')
 
     def forward(self,prediction,target):
         target=target.long()
