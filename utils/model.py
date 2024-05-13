@@ -10,10 +10,10 @@ class Network(nn.Module):
     self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
     self.fc = nn.Sequential(
                 nn.Linear(2048,2048),
-                nn.BatchNorm1d(2048),
+                nn.InstanceNorm1d(2048),
                 nn.ReLU(),
                 nn.Linear(2048,embedding_size),
-                nn.BatchNorm1d(128)
+                nn.InstanceNorm1d(128)
         ) #2048 for ResNet50 and 101;
     self.contrast=False
 

@@ -4,7 +4,7 @@ patch_size = 32
 contrastive_batch_size = 256
 batch_size = 2
 classes = 2
-base_path = '/home/louis/Documents/project/PatchCL-MedSeg'
+base_path = '/tf/PatchCL-MedSeg'
 data_dir = base_path + '/0_data_dataset_voc_950_kidney/'
 output_dir = base_path + '/dataset/splits/kidney/1-3/'
 
@@ -28,7 +28,8 @@ import matplotlib.pyplot as plt
 sys.path.append(base_path)
 from utils.stochastic_approx import StochasticApprox
 from utils.model import Network
-from dataloaders.dataset_kidney_binary_mask import BaseDatasets  
+# from dataloaders.dataset_kidney_binary_mask import BaseDatasets  
+from dataloaders.dataset_kidney import BaseDatasets  
 from utils.queues import Embedding_Queues
 from utils.CELOSS import CE_loss
 from utils.patch_utils import _get_patches
@@ -120,6 +121,8 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
     total_contrastive_loss = 0
 
     for imgs, masks in labeled_dataloader:
+        print('imgs shape: ', imgs.shape)
+        print('masks shape: ', masks.shape)
         t1=time.time()
         p_masks = masks
         imgs = imgs
@@ -150,6 +153,7 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
         model = model.train()
         model.module.contrast=True
 
+        print(qualified_tensor_patch_list[0].shape)
         student_emb_list = get_embeddings(model,qualified_tensor_patch_list,True,batch_size)
         print('student_emb_list: ', len(student_emb_list))
 
