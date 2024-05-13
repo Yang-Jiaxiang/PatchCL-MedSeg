@@ -8,6 +8,9 @@ base_path = '/home/louis/Documents/project/PatchCL-MedSeg'
 data_dir = base_path + '/0_data_dataset_voc_950_kidney/'
 output_dir = base_path + '/dataset/splits/kidney/1-3/'
 
+# loss file
+supervised_loss_path = base_path + '/supervised pre training_loss.csv'
+SSL_loss_path = base_path + '/SSL_loss.csv'
 
 import torch
 import torch.nn as nn
@@ -25,7 +28,7 @@ import matplotlib.pyplot as plt
 sys.path.append(base_path)
 from utils.stochastic_approx import StochasticApprox
 from utils.model import Network
-from dataloaders.dataset_kidney import BaseDatasets  
+from dataloaders.dataset_kidney_binary_mask import BaseDatasets  
 from utils.queues import Embedding_Queues
 from utils.CELOSS import CE_loss
 from utils.patch_utils import _get_patches
@@ -74,8 +77,8 @@ print('===========================================================')
 
 
 # check loss file before training, if not exist, create one
-check_loss_file(base_path + '/supervised pre training_loss.csv')
-check_loss_file(base_path + '/SSL_loss.csv')
+check_loss_file(supervised_loss_path)
+check_loss_file(SSL_loss_path)
 
 
 stochastic_approx = StochasticApprox(classes,0.5,0.8)
@@ -112,6 +115,10 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
     epoch_loss=0
     
     print('Epoch: ', c_epochs)
+
+    total_supervised_loss = 0
+    total_contrastive_loss = 0
+
     for imgs, masks in labeled_dataloader:
         t1=time.time()
         p_masks = masks
@@ -157,6 +164,7 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
         
         #calculate PCGJCL loss
         PCGJCL_loss = PCGJCL(student_emb_list, embd_queues, 128, 0.2 , 4, psi=4096)
+        total_contrastive_loss += PCGJCL_loss.item()
         print('PCGJCL_loss: ', PCGJCL_loss)
 
         PCGJCL_loss = PCGJCL_loss.to(dev)  # 確保這個損失也在正確的設備上
@@ -171,21 +179,30 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
             masks_3 = masks_3.argmax(dim=1)
         masks_3 = masks_3.long()  # Ensuring the correct type for cross_entropy_loss
         supervised_loss = cross_entropy_loss(out,masks_3)
+        total_supervised_loss += supervised_loss.item()
         print('supervised_loss: ', supervised_loss)
 
         Alpha_consistency=0.5
         #total loss
-        loss = (supervised_loss * (1-Alpha_consistency)) + (Alpha_consistency * PCGJCL_loss)
-        
-        epoch_loss+=loss.item()
+        loss = supervised_loss + 0.5*PCGJCL_loss
+        epoch_loss+=loss
 
+        #backpropagate
         loss.backward()
         optimizer_contrast.step()
+                
         
         t2=time.time()
         print('step ', step, 'loss: ',loss.item(), ' & time: ',t2-t1)
         step+=1
-        
-    save_loss(epoch_loss/len(labeled_dataloader), base_path + '/supervised pre training_loss.csv')
+
+    avg_supervised_loss = total_supervised_loss / len(labeled_dataloader)
+    avg_contrastive_loss = total_contrastive_loss / len(labeled_dataloader)
+
+    save_loss(epoch_loss/len(labeled_dataloader), supervised_loss_path)
+    save_loss(total_loss= avg_supervised_loss+avg_contrastive_loss, 
+              supervised_loss=f"{avg_supervised_loss:.4f}", 
+              contrastive_loss=f"{avg_contrastive_loss:.4f}", 
+              filename=supervised_loss_path)
     if epoch_loss < min_loss:
         torch.save(model,'./best_contrast.pth')

@@ -3,12 +3,9 @@ from datetime import datetime
 import os
 
 
-def save_loss(loss, filename='/tf/PatchCL-MedSeg-pioneeryj/loss_record.csv'):
-    # 确保损失是一个标量并移动到CPU
-    loss_scalar = loss.item() if loss.requires_grad else loss.detach().cpu().item()
-
+def save_loss(total_loss, supervised_loss, contrastive_loss, filename='/tf/PatchCL-MedSeg-pioneeryj/loss_record.csv'):
     # 创建一个包含损失值和当前时间的字典
-    data = {'loss': [loss_scalar], 'time': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]}
+    data = {'loss': [total_loss], 'supervised_loss':[supervised_loss], 'contrastive_loss':[contrastive_loss], 'time': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')]}
     
     # 检查文件是否存在
     if not os.path.exists(filename):

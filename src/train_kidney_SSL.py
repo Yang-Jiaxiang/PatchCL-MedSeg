@@ -194,7 +194,9 @@ for c_epochs in range(200):  # 200 個 epoch 的半監督學習
         # 總損失
         loss = supervised_loss + 0.5 * PCGJCL_loss + 4 * consistency_loss
         epoch_loss+=loss.item()
-        # 反向傳播
+        
+        
+        #backpropagate
         loss.backward()
         optimizer_ssl.step()
         scheduler.step()
