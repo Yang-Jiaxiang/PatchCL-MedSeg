@@ -1,4 +1,4 @@
-base_path = '/home/u5169119/PatchCL-MedSeg'
+base_path = '/tf/PatchCL-MedSeg'
 
 import torch
 import torch.nn as nn
@@ -33,7 +33,7 @@ img_size = 400
 supervised_epochs = 100
 patch_size = 64
 contrastive_batch_size = 256
-batch_size = 16
+batch_size = 2
 classes = 2
 data_dir = base_path + '/0_data_dataset_voc_950_kidney/'
 output_dir = base_path + '/dataset/splits/kidney/1-3/'
@@ -73,8 +73,20 @@ transform = transforms.Compose([
 ])
 
 # # Create datasets and dataloaders
-labeled_dataset = BaseDatasets(labeled_files, IMG_folder_path, msk_folder_path, transform)
-unlabeled_dataset = BaseDatasets(unlabeled_files, IMG_folder_path, transform=transform)
+# labeled_dataset = BaseDatasets(labeled_files, IMG_folder_path, msk_folder_path, transform)
+# unlabeled_dataset = BaseDatasets(unlabeled_files, IMG_folder_path, transform=transform)
+labeled_dataset = BaseDatasets(
+    file_list=labeled_files, 
+    img_folder=data_dir, 
+    msk_folder=data_dir, 
+    size=img_size
+)
+
+unlabeled_dataset = BaseDatasets(
+    file_list=unlabeled_files, 
+    img_folder=data_dir, 
+    size=img_size,
+)
 
 labeled_dataloader = DataLoader(labeled_dataset, batch_size=batch_size, shuffle=True)
 unlabeled_dataloader = DataLoader(unlabeled_dataset, batch_size=batch_size, shuffle=True)
@@ -133,7 +145,7 @@ for c_epochs in range(supervised_epochs): #100 epochs supervised pre training
         imgs = imgs
 
         # 一個 classes 一個 index
-        patch_list = _get_patches(imgs, p_masks, classes, True, img_size, patch_size)
+        patch_list = _get_patches(imgs, p_masks, classes, False, img_size, patch_size)
 
         # 隨機近似過濾和閾值更新
         qualified_patch_list = stochastic_approx.update(patch_list)
